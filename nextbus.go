@@ -203,3 +203,64 @@ func GetPredictions(agencyTag string, routeTag string, stopTag string) ([]Predic
     }
     return a.PredictionDataList, nil
 }
+
+
+type ScheduleResponse struct {
+    XMLName            xml.Name       `xml:"body"`
+    ScheduleRouteList []ScheduleRoute `xml:"route"`
+}
+
+type ScheduleRoute struct {
+    XMLName       xml.Name				`xml:"route"`
+		Header				ScheduleHeader	`xml:"header"`
+    Tr						[]ScheduleTr		`xml:"tr"`
+    RouteTitle    string					`xml:"title,attr"`
+		RouteTag      string					`xml:"tag,attr"`
+    ScheduleClass string					`xml:"scheduleClass,attr"`
+    ServiceClass  string					`xml:"serviceClass,attr"`
+    Direction     string					`xml:"direction,attr"`
+}
+
+type ScheduleHeader struct {
+	XMLName	 xml.Name				`xml:"header"`
+	StopList []ScheduleHeaderStop `xml:"stop"`
+}
+
+type ScheduleHeaderStop struct {
+	XMLName xml.Name	`xml:"stop"`
+	Tag     string		`xml:"tag,attr"`
+	Title		string		`xml:",chardata"`
+}
+
+type ScheduleTr struct {
+	XMLName		xml.Name					`xml:"tr"`
+	StopList	[]ScheduleTrStop	`xml:"stop"`
+	BlockID	  int								`xml:"blockID,attr"`
+}
+
+type ScheduleTrStop struct {
+	XMLName		xml.Name	`xml:"stop"`
+	Tag   	  string		`xml:"tag,attr"`
+	EpochTime	int				`xml:"epochTime,attr"`
+	Time			string		`xml:",chardata"`
+}
+
+func GetSchedule(agencyTag string, routeTag string) ([]ScheduleRoute, error) {
+    resp, httpErr := http.Get("http://webservices.nextbus.com/service/publicXMLFeed?command=schedule&a=" + agencyTag + "&r=" + routeTag)
+    if httpErr != nil {
+        return nil, httpErr
+    }
+    defer resp.Body.Close()
+
+    body, readErr := ioutil.ReadAll(resp.Body)
+    if readErr != nil {
+        return nil, readErr
+    }
+
+    var a ScheduleResponse
+    xmlErr := xml.Unmarshal(body, &a)
+    if xmlErr != nil {
+        return nil, xmlErr
+    }
+    return a.ScheduleRouteList, nil
+}
